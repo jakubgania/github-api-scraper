@@ -1,1 +1,6 @@
 venv/
+
+.env
+
+main.py
+query.py
