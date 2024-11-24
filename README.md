@@ -19,6 +19,16 @@ python -m venv venv
 source venv/bin/activate
 ```
 
+4. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+5. Run the script:
+```bash
+python worker.py
+```
+
 In this case, the script only collects user logins because I needed such data for my other project.
 
 You need to generate an API token in your GitHub account and provide an initial value from which the script will start collecting data.
