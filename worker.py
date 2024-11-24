@@ -15,7 +15,7 @@ import os
 config = {
     "mainLoop": {
         "limitNumberOfLoops": True,
-        "limitCounter": 1
+        "limitCounter": 2
     },
     "followersPaginationLoops": {
         "limitNumberOfLoops": False,
@@ -30,8 +30,10 @@ config = {
 users_fetched = deque()
 
 users_queue = deque(maxlen=100)
-users_queue.append("torvalds")
+users_queue.append("jakubgania")
 
+GITHUB_RATE_LIMIT_ENDPOINT = "https://api.github.com/rate_limit"
+GITHUB_API_ENDPOINT = "https://api.github.com/graphql"
 GITHUB_API_TOKEN = os.environ.get("GITHUB_API_TOKEN")
 HEADERS = {"Authorization": f"Bearer {GITHUB_API_TOKEN}"}
 MAIN_LOOP_TIME_SLEEP = 1.4
@@ -137,8 +139,11 @@ query($username: String!, $cursor: String!) {
 def fetch_api_data(query, variables, headers):
     try:
         response = requests.post(
-            "https://api.github.com/graphql",
-            json={'query': query, 'variables': variables},
+            GITHUB_API_ENDPOINT,
+            json={
+                'query': query,
+                'variables': variables
+            },
             headers=headers
         )
 
@@ -158,8 +163,8 @@ def fetch_api_data(query, variables, headers):
         print(colored(f"HTTP error occurred: {http_err}", 'red'))
         return []
 
-def check_rate_limit():
-    response = requests.get("https://api.github.com/rate_limit", headers = HEADERS)
+def get_rate_limit():
+    response = requests.get(GITHUB_RATE_LIMIT_ENDPOINT, headers = HEADERS)
     data = response.json()
     remaining = data["resources"]["graphql"]["remaining"]
     reset_time = data["resources"]["graphql"]["reset"]
@@ -171,6 +176,14 @@ def wait_for_reset(reset_time):
         print(f"Rate limit exceeded. Waiting for {sleep_time:.2f} seconds...")
         time.sleep(sleep_time)
 
+def check_rate_limit():
+    remaining, reset_time = get_rate_limit()
+    if remaining == 0:
+        wait_for_reset(reset_time)
+    else:
+        print(" ")
+        print(colored(f"api rate limit: {remaining}", 'light_yellow'))
+
 # def wait_for_reset(reset_time):
 #     while True:
 #         sleep_time = reset_time - time.time()
@@ -179,10 +192,6 @@ def wait_for_reset(reset_time):
 #         print(f"Rate limit exceeded. Waiting for {int(sleep_time)} seconds...", end="\r")
 #         time.sleep(1)
 #     print("Rate limit reset. Resuming requests...")
-
-
-# response = requests.post("https://api.github.com/graphql", json={'query': QUERY, "variables": variables}, headers=headers)
-# data = response.json()
 
 output = []
 # output_counter = 0
@@ -193,12 +202,7 @@ while True:
     if config["mainLoop"]["limitNumberOfLoops"] and config["mainLoop"]["limitCounter"] <= main_loop_counter:
         break
 
-    remaining, reset_time = check_rate_limit()
-    if remaining == 0:
-        wait_for_reset(reset_time)
-    else:
-        print(" ")
-        print(colored(f"api rate limit: {remaining}", 'light_yellow'))
+    check_rate_limit()
 
     users_fetched_set = set(users_fetched)
 
@@ -211,7 +215,6 @@ while True:
     # username = users_queue.popleft()
     username = ""
     
-
     unique_username = None
     while users_queue:
         username = users_queue.popleft()
@@ -237,7 +240,7 @@ while True:
         "username": username
     }
 
-    # response = requests.post("https://api.github.com/graphql", json={'query': QUERY, "variables": variables}, headers=headers)
+    # response = requests.post(GITHUB_API_ENDPOINT, json={'query': QUERY, "variables": variables}, headers=headers)
     response = fetch_api_data(QUERY, variables, HEADERS)
     data = []
 
@@ -298,7 +301,9 @@ while True:
                     if config["followersPaginationLoops"]["limitNumberOfLoops"] and config["followersPaginationLoops"]["limitCounter"] <= followersPaginationCounter:
                         break
 
-                    variables_p = {
+                    check_rate_limit()
+
+                    variables_query_followers = {
                         "username": username,
                         "cursor": cursor
                     }
@@ -310,10 +315,15 @@ while True:
                     print(colored(f"cursor:    {cursor}", 'light_red'))
                     print(" ")
 
-                    response = requests.post("https://api.github.com/graphql", json = {'query': PAGINATION_QUERY_FOLLOWERS, "variables": variables_p}, headers = HEADERS)
+                    response = requests.post(
+                        GITHUB_API_ENDPOINT,
+                        json = {
+                            'query': PAGINATION_QUERY_FOLLOWERS,
+                            "variables": variables_query_followers
+                        },
+                        headers = HEADERS
+                    )
                     data_p = response.json()
-
-                    # print(data_p)
 
                     nodes = data_p["data"]["user"]["followers"]["nodes"]
                     for node in nodes:
@@ -365,7 +375,9 @@ while True:
                     if config["followingsPaginationLoops"]["limitNumberOfLoops"] and config["followingsPaginationLoops"]["limitCounter"] <= followingPaginationCounter:
                         break
 
-                    variables_p = {
+                    check_rate_limit()
+
+                    variables_query_following = {
                         "username": username,
                         "cursor": cursor
                     }
@@ -377,7 +389,14 @@ while True:
                     print(colored(f"cursor:    {cursor}", 'light_red'))
                     print(" ")
 
-                    response = requests.post("https://api.github.com/graphql", json = {'query': PAGINATION_QUERY_FOLLOWING, "variables": variables_p}, headers = HEADERS)
+                    response = requests.post(
+                        GITHUB_API_ENDPOINT,
+                        json = {
+                            'query': PAGINATION_QUERY_FOLLOWING,
+                            "variables": variables_query_following
+                        },
+                        headers = HEADERS
+                    )
                     data_p = response.json()
 
                     nodes = data_p["data"]["user"]["following"]["nodes"]
@@ -409,7 +428,6 @@ while True:
                 print(" ")
 
         output.extend(temp_output)
-        # users_fetched.append(username)
         users_fetched.append(username)
     else:
         print("this profile is an organization")
