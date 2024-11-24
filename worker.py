@@ -1,8 +1,8 @@
 from collections import deque
 from termcolor import colored
-from enum import Enum
+# from enum import Enum
 import requests
-import json
+# import json
 import time
 import os
 
@@ -15,7 +15,7 @@ import os
 config = {
     "mainLoop": {
         "limitNumberOfLoops": True,
-        "limitCounter": 2
+        "limitCounter": 3
     },
     "followersPaginationLoops": {
         "limitNumberOfLoops": False,
@@ -27,8 +27,8 @@ config = {
     }
 }
 
-users_fetched = deque()
-
+# users_fetched = deque()
+users_fetched_set = set()
 users_queue = deque(maxlen=100)
 users_queue.append("jakubgania")
 
@@ -193,7 +193,7 @@ def check_rate_limit():
 #         time.sleep(1)
 #     print("Rate limit reset. Resuming requests...")
 
-output = []
+output = set()
 # output_counter = 0
 main_loop_counter = 0
 total_number_of_fetched_logins = 0
@@ -204,11 +204,12 @@ while True:
 
     check_rate_limit()
 
-    users_fetched_set = set(users_fetched)
+    # users_fetched_set = set(users_fetched)
 
     print(" ")
     print(colored("fetched usernames:", 'light_green'))
     print(" ")
+
     for item in users_fetched_set:
         print(colored(f"* {item}", 'light_yellow'))
 
@@ -230,7 +231,7 @@ while True:
     else:
         print("No unique usernames available in users_queue.")
 
-    temp_output = []
+    temp_output = set()
 
     print(" ")
     print(colored(f"getting data for user: {username}", 'blue'))
@@ -249,10 +250,10 @@ while True:
 
     if data and data["data"]["user"] is not None:
         organizations = data["data"]["user"]["organizations"]
-        if organizations:
+        if organizations and organizations["nodes"]:
             if organizations["nodes"]:
                 for item in organizations["nodes"]:
-                    temp_output.append(item["login"])
+                    temp_output.add(item["login"])
                     print("- - - - - - - -")
                     print(item["login"])
                     print("- - - - - - - -")
@@ -268,7 +269,7 @@ while True:
                 for node in followers["nodes"]:
                     node_followers_total_count = node["followers"]["totalCount"]
                     node_following_total_count = node["following"]["totalCount"]
-                    temp_output.append(node["login"])
+                    temp_output.add(node["login"])
                     print(node["login"], node_followers_total_count, node_following_total_count)
 
                     # detailed log
@@ -329,8 +330,10 @@ while True:
                     for node in nodes:
                         node_followers_total_count = node["followers"]["totalCount"]
                         node_following_total_count = node["following"]["totalCount"]
-                        temp_output.append(node["login"])
+                        temp_output.add(node["login"])
+
                         print(node["login"], node_followers_total_count, node_following_total_count)
+
                         if node_followers_total_count > 0 or node_following_total_count > 0:
                             users_queue.append(node["login"])
 
@@ -359,7 +362,7 @@ while True:
                 for node in following["nodes"]:
                     node_followers_total_count = node["followers"]["totalCount"]
                     node_following_total_count = node["following"]["totalCount"]
-                    temp_output.append(node["login"])
+                    temp_output.add(node["login"])
                     print(node["login"], node_followers_total_count, node_following_total_count)
                     if node_followers_total_count > 0 or node_following_total_count > 0:
                         users_queue.append(node["login"])
@@ -403,8 +406,10 @@ while True:
                     for node in nodes:
                         node_followers_total_count = node["followers"]["totalCount"]
                         node_following_total_count = node["following"]["totalCount"]
-                        temp_output.append(node["login"])
+                        temp_output.add(node["login"])
+
                         print(node["login"], node_followers_total_count, node_following_total_count)
+
                         if node_followers_total_count > 0 or node_following_total_count > 0:
                             users_queue.append(node["login"])
 
@@ -427,8 +432,9 @@ while True:
                 print(colored("following nextPage - no pagination", 'light_magenta'))
                 print(" ")
 
-        output.extend(temp_output)
-        users_fetched.append(username)
+        output = output.union(temp_output)
+        # users_fetched.append(username)
+        users_fetched_set.add(username)
     else:
         print("this profile is an organization")
         print("the initial value for username can't be an organization")
@@ -456,10 +462,11 @@ while True:
     print(f"fetched logins in this loop: {len(temp_output)}")
     print(f"total number of fetched logins: {total_number_of_fetched_logins}")
 
-    output = list(set(output))
+    # output = list(set(output))
     number_of_unique_logins = len(output)
     print(f"total number of unique logins: {number_of_unique_logins}")
 
-output = list(set(output))
+# print(output)
+# output = list(set(output))
 number_of_unique_logins = len(output)
 print(f"total number of unique logins: {number_of_unique_logins}")
