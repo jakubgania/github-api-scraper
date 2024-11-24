@@ -17,8 +17,12 @@ The script is still in development.
 Useful links:
 
 [About the GraphQL API](https://docs.github.com/en/graphql/overview/about-the-graphql-api)
+
 [GitHub GraphQL API documentation](https://docs.github.com/en/graphql)
+
 [Exploring GraphQL API queries](https://docs.github.com/en/graphql/overview/explorer)
+
 [Objects in GraphQL represent the resources you can access](https://docs.github.com/en/graphql/reference/objects)
+
 [Rate limits and node limits for the GraphQL API](https://docs.github.com/en/graphql/overview/rate-limits-and-node-limits-for-the-graphql-api)
 
