@@ -1,4 +1,23 @@
+# github-api-scraper
+
 A script that allows scraping data from the GitHub GraphQL API.
+
+1. Clone the repository:
+```bash
+git clone https://github.com/jakubgania/github-api-scraper.git
+
+cd github-api-scraper
+```
+
+2. Create a virtual environment:
+```bash
+python -m venv venv
+```
+
+3. Activate the virtual environment:
+```bash
+source venv/bin/activate
+```
 
 In this case, the script only collects user logins because I needed such data for my other project.
 
